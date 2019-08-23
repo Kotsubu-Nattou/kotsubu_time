@@ -22,21 +22,21 @@
   ・実際にウェイトされるタイミングは上記の3.
   ・実際にウェイトされる時間は700ms（1000ms - 300ms）
 
-〇注意
+〇注意等
   ・Windows依存
   ・DWORD型は、unsigned longと同じ（キャスト不要）
   ・時間関数の「49日問題」には、簡易的な対策しかしていない
-  ・C言語のコードを、C++に移植＆クラス化
+  ・C言語から、C++に移植＆改良
 **************************************************************************************************/
 
 
 
 #pragma once
 
-#include <stdio.h>
-#include <windows.h>  // DWORD型、GetTickCount(), Sleep()で使用
-#include <time.h>     // time_t型、tm構造体型、time(), localtime(), strftime()で使用
-#include <string.h>   // sprintf()で使用
+#include <ctime>      // time_t型、tm構造体型、time(), localtime(), strftime()
+#include <cstdio>     // C言語からの移植のため
+#include <string>     // クラスstring（C++）
+#include <windows.h>  // DWORD型、GetTickCount(), Sleep()
 
 
 
@@ -84,39 +84,37 @@ public:
 
 
 
-    // 【メソッド】秒数を日付文字列に変換
-    // <引数>   変換する秒（time()の値など）
-    // <戻り値> 文字列のポインタ
-    static char* convDate(time_t sec)
+    // 【メソッド】秒を日付文字列にして返す
+    // <引数>   秒（time()の値など）
+    // <戻り値> 文字列データ
+    static std::string toDate(time_t sec)
     {
-        static char date[64] = {0};
-        struct tm *tm;
+        putenv("TZ=JST-9");              // 環境変数にタイムゾーンを設定
+        struct tm* t = localtime(&sec);  // 時間構造体にデータを取得
 
-        putenv( "TZ=JST-9" );  // 環境変数にタイムゾーンを設定
-        tm = localtime(&sec);  // time()の値を時間構造体に変換
-        strftime( date, sizeof(date), "%Y/%m/%d %H:%M:%S", tm );  // 時間構造体を文字列化
-
-        return date;
+        return std::string(std::to_string(1900 + t->tm_year) + "/" +
+                           std::to_string(1 + t->tm_mon) + "/" +
+                           std::to_string(t->tm_mday) + " " +
+                           std::to_string(t->tm_hour) + ":" +
+                           std::to_string(t->tm_min) + ":" +
+                           std::to_string(t->tm_sec));
     }
 
 
 
-    // 【メソッド】ミリ秒を"Min, Sec, MS"の文字列に変換
-    // <引数>   変換するミリ秒（GetTickCount()の値など）
-    // <戻り値> 文字列のポインタ
-    static char* convMinSecMS(unsigned long ms)
+    // 【メソッド】ミリ秒を文字列"min sec ms"にして返す
+    // <引数>   ミリ秒（GetTickCount()の値など）
+    // <戻り値> 文字列データ
+    static std::string toMinSecMS(unsigned long ms)
     {
-        static char tm[64] = {0};
-        unsigned long m, s;
-
-        m   = ms / 60000;
+        unsigned long m = ms / 60000;
         ms %= 60000;
-        s   = ms / 1000;
+        unsigned long s = ms / 1000;
         ms %= 1000;
 
-        sprintf( tm, "%lum %lus %lums", m, s, ms );
-
-        return tm;
+        return std::string(std::to_string(m)  + "m " +
+                           std::to_string(s)  + "s " +
+                           std::to_string(ms) + "ms");
     }
 
 
